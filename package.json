@@ -3,14 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://ClebsonSampaio.github.io/-TD2-DSW---Gerenciamento-Aluguel-De-Carros",
+  "homepage": "https://ClebsonSampaio.github.io/-TD2-DSW---Gerenciamento-Aluguel-De-Carros/",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "build": "tsc -b && vite build",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
