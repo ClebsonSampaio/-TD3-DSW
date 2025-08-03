@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Car } from "../models/Car";
+import { getCarroById } from "../services/carroService";
+import { toast } from "react-toastify";
 
 interface CarFormProps {
-  cars?: Car[];
   onSave: (car: Car) => void;
 }
 
-const CarForm = ({ cars = [], onSave }: CarFormProps) => {
+const CarForm = ({ onSave }: CarFormProps) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
 
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
@@ -21,20 +22,25 @@ const CarForm = ({ cars = [], onSave }: CarFormProps) => {
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
-    if (id && cars.length > 0) {
-      const current = cars.find((c) => c.id === id);
-      if (current) {
+    const fetchCar = async () => {
+      if (id) {
         setEditMode(true);
-        setMarca(current.marca);
-        setModelo(current.modelo);
-        setAno(current.ano);
-        setPlaca(current.placa);
-        setKmRodado(current.kmRodado);
-        setPrecoPorDia(current.precoPorDia);
-        setDisponivel(current.disponivel);
+        try {
+          const car = await getCarroById(id);
+          setMarca(car.marca);
+          setModelo(car.modelo);
+          setAno(car.ano);
+          setPlaca(car.placa);
+          setKmRodado(car.kmRodado);
+          setPrecoPorDia(car.precoPorDia);
+          setDisponivel(car.disponivel);
+        } catch (error) {
+          toast.error("Erro ao carregar dados do carro.");
+        }
       }
-    }
-  }, [id, cars]);
+    };
+    fetchCar();
+  }, [id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +53,12 @@ const CarForm = ({ cars = [], onSave }: CarFormProps) => {
       kmRodado === "" ||
       precoPorDia === ""
     ) {
-      alert("Preencha todos os campos.");
+      toast.error("Preencha todos os campos.");
       return;
     }
 
     const car: Car = {
-      id: editMode && id ? id : crypto.randomUUID(),
+      id: id || "",
       marca,
       modelo,
       ano: Number(ano),

@@ -1,4 +1,3 @@
-// src/App.tsx
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import PersonList from "./components/PersonList";
 import CarList from "./components/CarList";

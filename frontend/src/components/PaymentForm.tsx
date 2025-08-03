@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Payment, IRent, Person, Car } from "../models/Rent";
+import { Payment, IRent } from "../models/Rent";
+import { Person } from "../models/Person";
+import { Car } from "../models/Car";
+import { toast } from "react-toastify";
 
 interface PaymentFormProps {
   payments?: Payment[];
@@ -18,64 +21,81 @@ const PaymentForm = ({
   onSave,
 }: PaymentFormProps) => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
 
-  const [aluguelId, setAluguelId] = useState("");
-  const [valor, setValor] = useState(0);
+  const [aluguelId, setAluguelId] = useState<string>("");
+  const [valor, setValor] = useState<number>(0);
+  const [diaria, setDiaria] = useState<number>(0);
+  const [qtdDiarias, setQtdDiarias] = useState<number>(0);
   const [status, setStatus] = useState<"PAGO" | "PENDENTE">("PENDENTE");
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState<boolean>(false);
 
   useEffect(() => {
     if (id && payments.length > 0) {
       const current = payments.find((p) => p.id === id);
       if (current) {
         setEditMode(true);
-        setAluguelId(current.aluguelId);
+        setAluguelId(String(current.aluguelId));
         setValor(current.valor);
         setStatus(current.status);
       }
     }
   }, [id, payments]);
 
-  // Atualiza valor automaticamente ao escolher aluguel
   useEffect(() => {
     if (!aluguelId) {
       setValor(0);
+      setDiaria(0);
+      setQtdDiarias(0);
       return;
     }
-    const rent = rents.find((r) => r.id === Number(aluguelId));
+
+    const rent = rents.find((r) => String(r.id) === aluguelId);
     if (!rent) {
       setValor(0);
+      setDiaria(0);
+      setQtdDiarias(0);
       return;
     }
-    const car = cars.find((c) => c.id === rent.carId);
+
+    const car = cars.find((c) => String(c.id) === String(rent.carId));
     if (!car) {
       setValor(0);
+      setDiaria(0);
+      setQtdDiarias(0);
       return;
     }
-    // Calcula dias entre datas inclusivo
+
     const start = new Date(rent.startDate);
     const end = new Date(rent.endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
+    setDiaria(car.precoPorDia);
+    setQtdDiarias(diffDays);
     setValor(diffDays * car.precoPorDia);
   }, [aluguelId, rents, cars]);
+
+  const formatDateBR = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("pt-BR");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!aluguelId) {
-      alert("Selecione um aluguel.");
+      toast.error("Selecione um aluguel.");
       return;
     }
     if (valor <= 0) {
-      alert("Valor do pagamento inválido.");
+      toast.error("Valor do pagamento inválido.");
       return;
     }
 
     const payment: Payment = {
-      id: editMode ? (id as string) : Date.now().toString(),
+      id: editMode ? (id as string) : "",
       aluguelId,
       valor,
       status,
@@ -96,18 +116,35 @@ const PaymentForm = ({
         >
           <option value="">Selecione</option>
           {rents.map((r) => {
-            const personName = people.find((p) => p.id === r.personId)?.nome;
-            const carModel = cars.find((c) => c.id === r.carId)?.modelo;
+            const personName =
+              people.find((p) => String(p.id) === String(r.personId))?.nome ||
+              "Cliente não encontrado";
+            const carData = cars.find((c) => String(c.id) === String(r.carId));
+            const carInfo = carData
+              ? `${carData.modelo} - Placa: ${carData.placa}`
+              : "Carro não encontrado";
             return (
-              <option key={r.id} value={r.id}>
-                {personName} - {carModel} ({r.startDate} até {r.endDate})
+              <option key={r.id} value={String(r.id)}>
+                {personName} - {carInfo} ({formatDateBR(r.startDate)} até{" "}
+                {formatDateBR(r.endDate)})
               </option>
             );
           })}
         </select>
 
-        <label>Valor (R$):</label>
-        <input type="number" value={valor.toFixed(2)} readOnly />
+        {aluguelId && (
+          <div className="payment-info">
+            <p>
+              <strong>Valor da diária:</strong> R$ {diaria.toFixed(2)}
+            </p>
+            <p>
+              <strong>Quantidade de diárias:</strong> {qtdDiarias}
+            </p>
+            <p>
+              <strong>Valor total:</strong> R$ {valor.toFixed(2)}
+            </p>
+          </div>
+        )}
 
         <label>Status:</label>
         <select
@@ -121,7 +158,7 @@ const PaymentForm = ({
 
         <div className="buttons">
           <button type="submit" className="btn btn-primary">
-            Salvar
+            {editMode ? "Atualizar" : "Salvar"}
           </button>
           <button
             type="button"

@@ -2,35 +2,70 @@ import { useState, useEffect } from "react";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import { Person } from "../models/Person";
 import PersonForm from "./PersonForm";
+import {
+  getAllPessoas,
+  createPessoa,
+  updatePessoa,
+  deletePessoa,
+} from "../services/pessoaService";
+import { toast } from "react-toastify";
 
 export default function PersonList() {
   const [people, setPeople] = useState<Person[]>([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedPeople = localStorage.getItem("people");
-    if (storedPeople) {
-      setPeople(JSON.parse(storedPeople));
+  const loadPessoas = async () => {
+    try {
+      const data = await getAllPessoas();
+      setPeople(data);
+    } catch (error) {
+      toast.error("Erro ao carregar pessoas.");
+      console.error(error);
     }
+  };
+
+  useEffect(() => {
+    loadPessoas();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("people", JSON.stringify(people));
-  }, [people]);
-
-  const addPerson = (person: Person) => {
-    setPeople([...people, person]);
-    navigate("/pessoas");
+  const addPerson = async (person: Person) => {
+    try {
+      await createPessoa({
+        nome: person.nome,
+        email: person.email,
+        telefone: person.telefone,
+      });
+      toast.success("Pessoa adicionada com sucesso!");
+      await loadPessoas();
+      navigate("/pessoas");
+    } catch (error) {
+      toast.error("Erro ao adicionar pessoa.");
+      console.error(error);
+    }
   };
 
-  const updatePerson = (person: Person) => {
-    setPeople(people.map((p) => (p.id === person.id ? person : p)));
-    navigate("/pessoas");
+  const editPerson = async (person: Person) => {
+    try {
+      await updatePessoa(person);
+      toast.success("Pessoa atualizada com sucesso!");
+      await loadPessoas();
+      navigate("/pessoas");
+    } catch (error) {
+      toast.error("Erro ao atualizar pessoa.");
+      console.error(error);
+    }
   };
 
-  const deletePerson = (id: string) => {
+  const removePerson = async (id: string) => {
     if (window.confirm("Deseja remover esta pessoa?")) {
-      setPeople(people.filter((p) => p.id !== id));
+      try {
+        await deletePessoa(id);
+        toast.success("Pessoa excluída com sucesso!");
+        await loadPessoas();
+      } catch (error) {
+        toast.error("Erro ao excluir pessoa.");
+        console.error(error);
+      }
     }
   };
 
@@ -78,7 +113,7 @@ export default function PersonList() {
                         </Link>{" "}
                         <button
                           className="btn btn-danger"
-                          onClick={() => deletePerson(p.id)}
+                          onClick={() => removePerson(p.id)}
                         >
                           Excluir
                         </button>
@@ -93,7 +128,7 @@ export default function PersonList() {
         <Route path="nova" element={<PersonForm onSave={addPerson} />} />
         <Route
           path="editar/:id"
-          element={<PersonForm people={people} onSave={updatePerson} />}
+          element={<PersonForm people={people} onSave={editPerson} />}
         />
       </Routes>
     </div>

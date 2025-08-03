@@ -2,35 +2,74 @@ import { useState, useEffect } from "react";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import { Car } from "../models/Car";
 import CarForm from "./CarForm";
+import {
+  getAllCarros,
+  createCarro,
+  updateCarro,
+  deleteCarro,
+} from "../services/carroService";
+import { toast } from "react-toastify";
 
 export default function CarList() {
   const [cars, setCars] = useState<Car[]>([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedCars = localStorage.getItem("cars");
-    if (storedCars) {
-      setCars(JSON.parse(storedCars));
+  const loadCarros = async () => {
+    try {
+      const data = await getAllCarros();
+      setCars(data);
+    } catch (error) {
+      toast.error("Erro ao carregar carros.");
+      console.error(error);
     }
+  };
+
+  useEffect(() => {
+    loadCarros();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("cars", JSON.stringify(cars));
-  }, [cars]);
-
-  const addCar = (car: Car) => {
-    setCars([...cars, car]);
-    navigate("/carros");
+  const addCar = async (car: Car) => {
+    try {
+      await createCarro({
+        marca: car.marca,
+        modelo: car.modelo,
+        ano: car.ano,
+        placa: car.placa,
+        kmRodado: car.kmRodado,
+        precoPorDia: car.precoPorDia,
+        disponivel: car.disponivel,
+      });
+      toast.success("Carro adicionado com sucesso!");
+      await loadCarros();
+      navigate("/carros");
+    } catch (error) {
+      toast.error("Erro ao adicionar carro.");
+      console.error(error);
+    }
   };
 
-  const updateCar = (car: Car) => {
-    setCars(cars.map((c) => (c.id === car.id ? car : c)));
-    navigate("/carros");
+  const editCar = async (car: Car) => {
+    try {
+      await updateCarro(car);
+      toast.success("Carro atualizado com sucesso!");
+      await loadCarros();
+      navigate("/carros");
+    } catch (error) {
+      toast.error("Erro ao atualizar carro.");
+      console.error(error);
+    }
   };
 
-  const deleteCar = (id: string) => {
+  const removeCar = async (id: string) => {
     if (window.confirm("Deseja remover este carro?")) {
-      setCars(cars.filter((c) => c.id !== id));
+      try {
+        await deleteCarro(id);
+        toast.success("Carro excluído com sucesso!");
+        await loadCarros();
+      } catch (error) {
+        toast.error("Erro ao excluir carro.");
+        console.error(error);
+      }
     }
   };
 
@@ -86,7 +125,7 @@ export default function CarList() {
                         </Link>{" "}
                         <button
                           className="btn btn-danger"
-                          onClick={() => deleteCar(c.id)}
+                          onClick={() => removeCar(c.id)}
                         >
                           Excluir
                         </button>
@@ -99,10 +138,7 @@ export default function CarList() {
           }
         />
         <Route path="novo" element={<CarForm onSave={addCar} />} />
-        <Route
-          path="editar/:id"
-          element={<CarForm cars={cars} onSave={updateCar} />}
-        />
+        <Route path="editar/:id" element={<CarForm onSave={editCar} />} />
       </Routes>
     </div>
   );

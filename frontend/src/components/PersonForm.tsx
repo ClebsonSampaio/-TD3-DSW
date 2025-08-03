@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Person } from "../models/Person";
 import { useNavigate, useParams } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
 
 interface Props {
   onSave: (person: Person) => void;
@@ -17,7 +16,7 @@ export default function PersonForm({ onSave, people = [] }: Props) {
   const [telefone, setTelefone] = useState("");
 
   useEffect(() => {
-    if (id) {
+    if (id && people.length > 0) {
       const pessoa = people.find((p) => p.id === id);
       if (pessoa) {
         setNome(pessoa.nome);
@@ -36,7 +35,7 @@ export default function PersonForm({ onSave, people = [] }: Props) {
     }
 
     const person: Person = {
-      id: id || uuidv4(),
+      id: id || crypto.randomUUID(),
       nome,
       email,
       telefone,
