@@ -1,2 +1,1 @@
-# React + TypeScript + Vite
-
+# React + TypeScript + Vite + Nodejs (APi) + SQLITE (DB)
